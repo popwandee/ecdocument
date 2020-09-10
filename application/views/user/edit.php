@@ -1,72 +1,81 @@
-<div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <section class="content-header">
-        <h1>
-            ผู้ใช้งาน
-            <small>จัดการผู้ใช้งานในระบบ</small>
-        </h1>
-        <ol class="breadcrumb">
-            <li><a href="<?php echo base_url(); ?>"><i class="fa fa-dashboard"></i> หน้าแรก</a></li>
-            <li><a href="<?php echo base_url('user'); ?>">ผู้ใช้งาน</a></li>
-            <li class="active">เพิ่มข้อมูลใหม่</li>
-        </ol>
-    </section>
-    <!-- Main content -->
-    <section class="content">
-        <!-- Your Page Content Here -->
-        <div class="box box-primary">
+<div class="row">
+    <div class="col-md-12">
+      	<div class="box box-info">
             <div class="box-header with-border">
-                <h3 class="box-title">เพิ่มข้อมูล</h3>
-            </div><!-- /.box-header -->
-            <!-- form start -->
-            <form role="form" action="<?php echo base_url('user/postdata'); ?>" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="id" value="<?php echo $user->id; ?>">
-                <div class="box-body">
-                    <div class="form-group">
-                        <label for="exampleInputEmail1">ประเภทผู้ใช้งาน</label> <?php echo $this->session->flashdata('error_permission'); ?>
-                        <?php
-                        if ($user->id == 1) { ?>
-                        <input type="text" id="permission" class="form-control" name="permission" value="<?php echo $user->permission; ?>" readonly="true">
-                       <?php } else {
-                            ?>
-                            <select class="form-control" name="permission">
-    
-                                <option value="USER" <?php
-                                if ($user->permission == 'USER') {
-                                    echo 'selected';
-                                }
-                                ?>>
-                                    USER
-                                </option>
-                                <option value="ADMIN" <?php
-                                if ($user->permission == 'ADMIN') {
-                                    echo 'selected';
-                                }
-                                ?>>
-                                    ผู้ดูแลระบบ
-                                </option>
-                            </select>
-                        <?php }
-                        ?>
-                    </div>
-                    <div class="form-group">
-                        <label for="exampleInputEmail1">ชื่อผู้ใช้งาน</label> <?php echo $this->session->flashdata('error_username'); ?>
-                        <input type="text" id="username" class="form-control" name="username" value="<?php echo $user->username; ?>" readonly="true">
-                    </div>
-                    <div class="form-group">
-                        <label for="exampleInputEmail1">รหัสผ่านเข้าใช้งาน (สามารถว่างได้ถ้าไม่ต้องการเปลี่ยนรหัสผ่าน)</label> <?php echo $this->session->flashdata('error_password'); ?>
-                        <input type="password" id="password" class="form-control" name="password" value="">
-                    </div>
-                    <div class="form-group">
-                        <label for="exampleInputEmail1">ชื่อ นามสกุลจริง</label> <?php echo $this->session->flashdata('error_display_name'); ?>
-                        <input type="text" id="display_name" class="form-control" name="display_name" value="<?php echo $user->display_name; ?>">
-                    </div>
-                </div><!-- /.box-body -->
-                <div class="box-footer">
-                    <button class="btn btn-primary" type="submit"><i class="fa fa-fw fa-save"></i> บันทึกข้อมูล</button>
-                    <a class="btn btn-danger" href="<?php echo base_url('user'); ?>" role="button"><i class="fa fa-fw fa-close"></i> ยกเลิก</a>
-                </div>
-            </form>
-        </div>
-    </section><!-- /.content -->
-</div><!-- /.content-wrapper -->
+              	<h3 class="box-title">User Edit</h3>
+            </div>
+			<?php echo form_open('user/edit/'.$user['userId']); ?>
+			<div class="box-body">
+				<div class="row clearfix">
+					<div class="col-md-6">
+						<label for="password" class="control-label">Password</label>
+						<div class="form-group">
+							<input type="text" name="password" value="<?php echo ($this->input->post('password') ? $this->input->post('password') : $user['password']); ?>" class="form-control" id="password" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="email" class="control-label">Email</label>
+						<div class="form-group">
+							<input type="text" name="email" value="<?php echo ($this->input->post('email') ? $this->input->post('email') : $user['email']); ?>" class="form-control" id="email" />
+							<span class="text-danger"><?php echo form_error('email');?></span>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="name" class="control-label">Name</label>
+						<div class="form-group">
+							<input type="text" name="name" value="<?php echo ($this->input->post('name') ? $this->input->post('name') : $user['name']); ?>" class="form-control" id="name" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="mobile" class="control-label">Mobile</label>
+						<div class="form-group">
+							<input type="text" name="mobile" value="<?php echo ($this->input->post('mobile') ? $this->input->post('mobile') : $user['mobile']); ?>" class="form-control" id="mobile" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="roleId" class="control-label">RoleId</label>
+						<div class="form-group">
+							<input type="text" name="roleId" value="<?php echo ($this->input->post('roleId') ? $this->input->post('roleId') : $user['roleId']); ?>" class="form-control" id="roleId" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="isDeleted" class="control-label">IsDeleted</label>
+						<div class="form-group">
+							<input type="text" name="isDeleted" value="<?php echo ($this->input->post('isDeleted') ? $this->input->post('isDeleted') : $user['isDeleted']); ?>" class="form-control" id="isDeleted" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="createdBy" class="control-label">CreatedBy</label>
+						<div class="form-group">
+							<input type="text" name="createdBy" value="<?php echo ($this->input->post('createdBy') ? $this->input->post('createdBy') : $user['createdBy']); ?>" class="form-control" id="createdBy" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="createdDtm" class="control-label">CreatedDtm</label>
+						<div class="form-group">
+							<input type="text" name="createdDtm" value="<?php echo ($this->input->post('createdDtm') ? $this->input->post('createdDtm') : $user['createdDtm']); ?>" class="has-datetimepicker form-control" id="createdDtm" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="updatedBy" class="control-label">UpdatedBy</label>
+						<div class="form-group">
+							<input type="text" name="updatedBy" value="<?php echo ($this->input->post('updatedBy') ? $this->input->post('updatedBy') : $user['updatedBy']); ?>" class="form-control" id="updatedBy" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="updatedDtm" class="control-label">UpdatedDtm</label>
+						<div class="form-group">
+							<input type="text" name="updatedDtm" value="<?php echo ($this->input->post('updatedDtm') ? $this->input->post('updatedDtm') : $user['updatedDtm']); ?>" class="has-datetimepicker form-control" id="updatedDtm" />
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="box-footer">
+            	<button type="submit" class="btn btn-success">
+					<i class="fa fa-check"></i> Save
+				</button>
+	        </div>				
+			<?php echo form_close(); ?>
+		</div>
+    </div>
+</div>

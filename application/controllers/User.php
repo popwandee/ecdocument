@@ -1,177 +1,435 @@
-<?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-class User extends CI_Controller
+<?php if(!defined('BASEPATH')) exit('No direct script access allowed');
+
+require APPPATH . '/libraries/BaseController.php';
+
+/**
+ * Class : User (UserController)
+ * User Class to control all user related operations.
+ * @author : Kishor Mali
+ * @version : 1.1
+ * @since : 15 November 2016
+ */
+class User extends BaseController
 {
+    /**
+     * This is default constructor of the class
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('user_model');
+        $this->isLoggedIn();
+    }
 
-	public function __construct()
-	{
-		parent::__construct();
-		$this->load->library('pagination');
-		$this->load->model('User_model');
-	}
+    /**
+     * This function used to load the first screen of the user
+     */
+    public function index()
+    {
+        $this->global['pageTitle'] = 'MI Bn : Dashboard';
 
-	public function index() {
-		$config = array();
-		$config['base_url'] = base_url('user/index');
-		$config['total_rows'] = $this->User_model->count($this->input->get('keyword'));
-		$config['per_page'] = $this->input->get('keyword') == NULL ? 14 : 999;
-		$config['uri_segment'] = 3;
-		$choice = $config['total_rows'] / $config['per_page'];
-		$config['num_links'] = round($choice);
+        $this->loadViews("users", $this->global, NULL , NULL);
+    }
 
-		$this->pagination->initialize($config);
+    /**
+     * This function is used to load the user list
+     */
+    function userListing()
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            $searchText = $this->security->xss_clean($this->input->post('searchText'));
+            $data['searchText'] = $searchText;
 
-		$page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 0;
-		$data['results'] = $this->User_model->fetch_user($config['per_page'], $page, $this->input->get('keyword'));
-		$data['link'] = $this->pagination->create_links();
-		$data['total_rows'] = $config['total_rows'];
+            $this->load->library('pagination');
 
-		$this->load->view('template/backheader');
-		$this->load->view('user/mainpage', $data);
-		$this->load->view('template/backfooter');
-	}
+            $count = $this->user_model->userListingCount($searchText);
 
-	public function newdata() {
-		$this->load->view('template/backheader');
-		$this->load->view('user/newdata');
-		$this->load->view('template/backfooter');
-	}
+			$returns = $this->paginationCompress ( "userListing/", $count, 10 );
 
-	public function edit($id) {
-		$data['user'] = $this->User_model->read_user($id);
-		$this->load->view('template/backheader');
-		$this->load->view('user/edit', $data);
-		$this->load->view('template/backfooter');
-		$this->output->enable_profiler(TRUE);
-	}
+            $data['userRecords'] = $this->user_model->userListing($searchText, $returns["page"], $returns["segment"]);
 
-	public function postdata() {
-		if ($this->input->server('REQUEST_METHOD') == TRUE) {
-			if($this->input->post('username')=='admin' && $this->session->userdata('login_id')!= 1){
-				redirect('dashboard/permission','refresh');
-				exit();
-			}
+            $this->global['pageTitle'] = 'CodeInsect : User Listing';
+
+            $this->loadViews("users", $this->global, $data, NULL);
+        }
+    }
+
+    /**
+     * This function is used to load the add new form
+     */
+    function addNew()
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            $this->load->model('user_model');
+            $data['roles'] = $this->user_model->getUserRoles();
+
+            $this->global['pageTitle'] = 'CodeInsect : Add New User';
+
+            $this->loadViews("addNew", $this->global, $data, NULL);
+        }
+    }
+
+    /**
+     * This function is used to check whether email already exist or not
+     */
+    function checkEmailExists()
+    {
+        $userId = $this->input->post("userId");
+        $email = $this->input->post("email");
+
+        if(empty($userId)){
+            $result = $this->user_model->checkEmailExists($email);
+        } else {
+            $result = $this->user_model->checkEmailExists($email, $userId);
+        }
+
+        if(empty($result)){ echo("true"); }
+        else { echo("false"); }
+    }
+
+    /**
+     * This function is used to add new user to the system
+     */
+    function addNewUser()
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            $this->load->library('form_validation');
+
+            $this->form_validation->set_rules('fname','Full Name','trim|required|max_length[128]');
+            $this->form_validation->set_rules('email','Email','trim|required|valid_email|max_length[128]');
+            $this->form_validation->set_rules('password','Password','required|max_length[20]');
+            $this->form_validation->set_rules('cpassword','Confirm Password','trim|required|matches[password]|max_length[20]');
+            $this->form_validation->set_rules('role','Role','trim|required|numeric');
+            $this->form_validation->set_rules('mobile','Mobile Number','required|min_length[10]');
+
+            if($this->form_validation->run() == FALSE)
+            {
+                $this->addNew();
+            }
+            else
+            {
+                $name = ucwords(strtolower($this->security->xss_clean($this->input->post('fname'))));
+                $email = strtolower($this->security->xss_clean($this->input->post('email')));
+                $password = $this->input->post('password');
+                $roleId = $this->input->post('role');
+                $mobile = $this->security->xss_clean($this->input->post('mobile'));
+
+                $userInfo = array('email'=>$email, 'password'=>getHashedPassword($password), 'roleId'=>$roleId, 'name'=> $name,
+                                    'mobile'=>$mobile, 'createdBy'=>$this->vendorId, 'createdDtm'=>date('Y-m-d H:i:s'));
+
+                $this->load->model('user_model');
+                $result = $this->user_model->addNewUser($userInfo);
+
+                if($result > 0)
+                {
+                    $this->session->set_flashdata('success', 'New User created successfully');
+                }
+                else
+                {
+                    $this->session->set_flashdata('error', 'User creation failed');
+                }
+
+                redirect('addNew');
+            }
+        }
+    }
 
 
-            //------------------------------------------------------------------
-			if ($this->input->post('id') == '') {
-				$this->form_validation->set_rules('permission', 'ประเภทผู้ใช้งาน', 'required', array('required' => 'ค่าห้ามว่าง!'));
-				$this->form_validation->set_rules('username', 'ชื่อผู้ใช้งาน', 'trim|required|min_length[5]|max_length[12]|is_unique[users.username]|alpha_numeric', array(
-					'trim' => 'มีค่าว่าง',
-					'required' => 'ค่าห้ามว่าง',
-					'min_length' => 'ต้องมากกว่า 4 ตัวอักษรขึ้นไป',
-					'max_length' => 'ต้องน้อยกว่า 13 ตัวอักษรลงไป',
-					'is_unique' => 'มีชื่อผู้ใช้งานอยู่ในระบบแล้ว',
-					'alpha_numeric' => 'ต้องเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น'
-					));
-				$this->form_validation->set_rules('password', 'รหัสผ่านเข้าใช้งาน', 'trim|required|min_length[5]|max_length[20]|alpha_numeric', array(
-					'trim' => 'มีค่าว่าง',
-					'required' => 'ค่าห้ามว่าง',
-					'min_length' => 'ต้องมากกว่า 5 ตัวอักษรขึ้นไป',
-					'max_length' => 'ต้องน้อยกว่า 21 ตัวอักษรลงไป',
-					'alpha_numeric' => 'ต้องเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น'
-					));
-				$this->form_validation->set_rules('display_name', 'ชื่อ นามสกุล', 'required', array('required' => 'ค่าห้ามว่าง!'));
-			} else {
-				$this->form_validation->set_rules('password', 'รหัสผ่านเข้าใช้งาน', 'trim|min_length[5]|max_length[20]|alpha_numeric', array(
-					'trim' => 'มีค่าว่าง',
-					'min_length' => 'ต้องมากกว่า 5 ตัวอักษรขึ้นไป',
-					'max_length' => 'ต้องน้อยกว่า 21 ตัวอักษรลงไป',
-					'alpha_numeric' => 'ต้องเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น'
-					));
-				$this->form_validation->set_rules('display_name', 'ชื่อ นามสกุล', 'required', array('required' => 'ค่าห้ามว่าง!'));
-			}
+    /**
+     * This function is used load user edit information
+     * @param number $userId : Optional : This is user id
+     */
+    function editOld($userId = NULL)
+    {
+        if($this->isAdmin() == TRUE || $userId == 1)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            if($userId == null)
+            {
+                redirect('userListing');
+            }
+
+            $data['roles'] = $this->user_model->getUserRoles();
+            $data['userInfo'] = $this->user_model->getUserInfo($userId);
+
+            $this->global['pageTitle'] = 'CodeInsect : Edit User';
+
+            $this->loadViews("editOld", $this->global, $data, NULL);
+        }
+    }
 
 
-			if ($this->form_validation->run() == TRUE) {
-				$this->session->set_flashdata(
-					array(
-						'msginfo' => '<div class="pad margin no-print"><div style="margin-bottom: 0!important;" class="callout callout-info"><h4><i class="fa fa-info"></i> ข้อความจากระบบ</h4>ทำรายการสำเร็จ</div></div>'
-						)
-					);
+    /**
+     * This function is used to edit the user information
+     */
+    function editUser()
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            $this->load->library('form_validation');
 
-				$this->User_model->entry_user($this->input->post('id'));
+            $userId = $this->input->post('userId');
+
+            $this->form_validation->set_rules('fname','Full Name','trim|required|max_length[128]');
+            $this->form_validation->set_rules('email','Email','trim|required|valid_email|max_length[128]');
+            $this->form_validation->set_rules('password','Password','matches[cpassword]|max_length[20]');
+            $this->form_validation->set_rules('cpassword','Confirm Password','matches[password]|max_length[20]');
+            $this->form_validation->set_rules('role','Role','trim|required|numeric');
+            $this->form_validation->set_rules('mobile','Mobile Number','required|min_length[10]');
+
+            if($this->form_validation->run() == FALSE)
+            {
+                $this->editOld($userId);
+            }
+            else
+            {
+                $name = ucwords(strtolower($this->security->xss_clean($this->input->post('fname'))));
+                $email = strtolower($this->security->xss_clean($this->input->post('email')));
+                $password = $this->input->post('password');
+                $roleId = $this->input->post('role');
+                $mobile = $this->security->xss_clean($this->input->post('mobile'));
+
+                $userInfo = array();
+
+                if(empty($password))
+                {
+                    $userInfo = array('email'=>$email, 'roleId'=>$roleId, 'name'=>$name,
+                                    'mobile'=>$mobile, 'updatedBy'=>$this->vendorId, 'updatedDtm'=>date('Y-m-d H:i:s'));
+                }
+                else
+                {
+                    $userInfo = array('email'=>$email, 'password'=>getHashedPassword($password), 'roleId'=>$roleId,
+                        'name'=>ucwords($name), 'mobile'=>$mobile, 'updatedBy'=>$this->vendorId,
+                        'updatedDtm'=>date('Y-m-d H:i:s'));
+                }
+
+                $result = $this->user_model->editUser($userInfo, $userId);
+
+                if($result == true)
+                {
+                    $this->session->set_flashdata('success', 'User updated successfully');
+                }
+                else
+                {
+                    $this->session->set_flashdata('error', 'User updation failed');
+                }
+
+                redirect('userListing');
+            }
+        }
+    }
 
 
-				redirect('user', 'refresh');
-			} else {
-				$data = array(
-					'error_permission' => form_error('permission'),
-					'username' => set_value('username'),
-					'error_username' => form_error('username'),
-					'password' => set_value('password'),
-					'error_password' => form_error('password'),
-					'display_name' => set_value('display_name'),
-					'error_display_name' => form_error('display_name')
-					);
-				$this->session->set_flashdata($data);
-			}
-			if ($this->input->post('id') == NULL) {
-				redirect('user/newdata');
-			} else {
-				redirect('user/edit/' . $this->input->post('id'));
-			}
-		}
-	}
+    /**
+     * This function is used to delete the user using userId
+     * @return boolean $result : TRUE / FALSE
+     */
+    function deleteUser()
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            echo(json_encode(array('status'=>'access')));
+        }
+        else
+        {
+            $userId = $this->input->post('userId');
+            $userInfo = array('isDeleted'=>1,'updatedBy'=>$this->vendorId, 'updatedDtm'=>date('Y-m-d H:i:s'));
 
-	public function login()
-	{
+            $result = $this->user_model->deleteUser($userId, $userInfo);
 
-		$this->load->view('user/login');
-	}
+            if ($result > 0) { echo(json_encode(array('status'=>TRUE))); }
+            else { echo(json_encode(array('status'=>FALSE))); }
+        }
+    }
 
-	public function validlogin()
-	{
-		if($this->input->server('REQUEST_METHOD') == TRUE){
-			if($this->User_model->record_count($this->input->post('username'), $this->input->post('password')) == 1)
-			{
-				$result = $this->User_model->fetch_user_login($this->input->post('username'), $this->input->post('password'));
-				$this->session->set_userdata(array('login_id'    => $result->id,'username'    => $result->username,'display_name'=> $result->display_name));
-				redirect('document');
-			}
-			else
-			{
-				$this->session->set_flashdata(array('msgerr'=> '<p class="login-box-msg" style="color:red;">ชื่อผู้ใช้หรือรหัสผ่านผิดพลาด!</p>'));
-				redirect('user/login', 'refresh');
-			}
-		}
+    /**
+     * Page not found : error 404
+     */
+    function pageNotFound()
+    {
+        $this->global['pageTitle'] = 'CodeInsect : 404 - Page Not Found';
 
-	}
+        $this->loadViews("404", $this->global, NULL, NULL);
+    }
 
-	public function logout()
-	{
-		$this->session->unset_userdata(array('login_id','username','display_name'));
-		redirect('', 'refresh');
-	}
+    /**
+     * This function used to show login history
+     * @param number $userId : This is user id
+     */
+    function loginHistoy($userId = NULL)
+    {
+        if($this->isAdmin() == TRUE)
+        {
+            $this->loadThis();
+        }
+        else
+        {
+            $userId = ($userId == NULL ? 0 : $userId);
 
-	public function profile()
-	{
-		$data['result'] = $this->User_model->read_user($this->session->userdata('login_id'));
-		$this->load->view('user/profile',$data);
-	}
+            $searchText = $this->input->post('searchText');
+            $fromDate = $this->input->post('fromDate');
+            $toDate = $this->input->post('toDate');
 
-	public function postprofile()
-	{
-		if($this->input->server('REQUEST_METHOD') == TRUE)
-		{
-			$this->form_validation->set_rules('display_name', 'ชื่อแสดง', 'required', array('required'=> 'ค่าห้ามว่าง!'));
-			if($this->User_model->record_count($this->input->post('username'),$this->input->post('password')) == 1 && $this->form_validation->run() == TRUE){
-				$this->User_model->entry_user($this->session->userdata('login_id'));
-				$this->session->set_userdata(array('display_name'=>$this->input->post('display_name')));
-				redirect('user','refresh');
-			}else{
-				redirect('user/profile','refresh');
-			}
-		}
-	}
+            $data["userInfo"] = $this->user_model->getUserInfoById($userId);
 
-	public function remove($id) {
-		if($this->session->userdata('username')!='admin'){
-			redirect('dashboard/permission','refresh');
-			exit();
-		}
+            $data['searchText'] = $searchText;
+            $data['fromDate'] = $fromDate;
+            $data['toDate'] = $toDate;
 
-		$this->User_model->remove_user($id);
-		redirect('user', 'refresh');
-	}
+            $this->load->library('pagination');
+
+            $count = $this->user_model->loginHistoryCount($userId, $searchText, $fromDate, $toDate);
+
+            $returns = $this->paginationCompress ( "login-history/".$userId."/", $count, 10, 3);
+
+            $data['userRecords'] = $this->user_model->loginHistory($userId, $searchText, $fromDate, $toDate, $returns["page"], $returns["segment"]);
+
+            $this->global['pageTitle'] = 'CodeInsect : User Login History';
+
+            $this->loadViews("loginHistory", $this->global, $data, NULL);
+        }
+    }
+
+    /**
+     * This function is used to show users profile
+     */
+    function profile($active = "details")
+    {
+        $data["userInfo"] = $this->user_model->getUserInfoWithRole($this->vendorId);
+        $data["active"] = $active;
+
+        $this->global['pageTitle'] = $active == "details" ? 'CodeInsect : My Profile' : 'CodeInsect : Change Password';
+        $this->loadViews("profile", $this->global, $data, NULL);
+    }
+
+    /**
+     * This function is used to update the user details
+     * @param text $active : This is flag to set the active tab
+     */
+    function profileUpdate($active = "details")
+    {
+        $this->load->library('form_validation');
+
+        $this->form_validation->set_rules('fname','Full Name','trim|required|max_length[128]');
+        $this->form_validation->set_rules('mobile','Mobile Number','required|min_length[10]');
+        $this->form_validation->set_rules('email','Email','trim|required|valid_email|max_length[128]|callback_emailExists');
+
+        if($this->form_validation->run() == FALSE)
+        {
+            $this->profile($active);
+        }
+        else
+        {
+            $name = ucwords(strtolower($this->security->xss_clean($this->input->post('fname'))));
+            $mobile = $this->security->xss_clean($this->input->post('mobile'));
+            $email = strtolower($this->security->xss_clean($this->input->post('email')));
+
+            $userInfo = array('name'=>$name, 'email'=>$email, 'mobile'=>$mobile, 'updatedBy'=>$this->vendorId, 'updatedDtm'=>date('Y-m-d H:i:s'));
+
+            $result = $this->user_model->editUser($userInfo, $this->vendorId);
+
+            if($result == true)
+            {
+                $this->session->set_userdata('name', $name);
+                $this->session->set_flashdata('success', 'Profile updated successfully');
+            }
+            else
+            {
+                $this->session->set_flashdata('error', 'Profile updation failed');
+            }
+
+            redirect('profile/'.$active);
+        }
+    }
+
+    /**
+     * This function is used to change the password of the user
+     * @param text $active : This is flag to set the active tab
+     */
+    function changePassword($active = "changepass")
+    {
+        $this->load->library('form_validation');
+
+        $this->form_validation->set_rules('oldPassword','Old password','required|max_length[20]');
+        $this->form_validation->set_rules('newPassword','New password','required|max_length[20]');
+        $this->form_validation->set_rules('cNewPassword','Confirm new password','required|matches[newPassword]|max_length[20]');
+
+        if($this->form_validation->run() == FALSE)
+        {
+            $this->profile($active);
+        }
+        else
+        {
+            $oldPassword = $this->input->post('oldPassword');
+            $newPassword = $this->input->post('newPassword');
+
+            $resultPas = $this->user_model->matchOldPassword($this->vendorId, $oldPassword);
+
+            if(empty($resultPas))
+            {
+                $this->session->set_flashdata('nomatch', 'Your old password is not correct');
+                redirect('profile/'.$active);
+            }
+            else
+            {
+                $usersData = array('password'=>getHashedPassword($newPassword), 'updatedBy'=>$this->vendorId,
+                                'updatedDtm'=>date('Y-m-d H:i:s'));
+
+                $result = $this->user_model->changePassword($this->vendorId, $usersData);
+
+                if($result > 0) { $this->session->set_flashdata('success', 'Password updation successful'); }
+                else { $this->session->set_flashdata('error', 'Password updation failed'); }
+
+                redirect('profile/'.$active);
+            }
+        }
+    }
+
+    /**
+     * This function is used to check whether email already exist or not
+     * @param {string} $email : This is users email
+     */
+    function emailExists($email)
+    {
+        $userId = $this->vendorId;
+        $return = false;
+
+        if(empty($userId)){
+            $result = $this->user_model->checkEmailExists($email);
+        } else {
+            $result = $this->user_model->checkEmailExists($email, $userId);
+        }
+
+        if(empty($result)){ $return = true; }
+        else {
+            $this->form_validation->set_message('emailExists', 'The {field} already taken');
+            $return = false;
+        }
+
+        return $return;
+    }
 }
+
+?>

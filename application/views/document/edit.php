@@ -1,132 +1,102 @@
-<!-- Datetime picker -->
-<?php echo link_tag('plugins/datepicker/datepicker3.css'); ?>
-<script src="<?php echo base_url(); ?>plugins/datepicker/bootstrap-datepicker.js" type="text/javascript">
-</script>
-<div class="content-wrapper">
-	<!-- Content Header (Page header) -->
-	<section class="content-header">
-		<h1>
-			เอกสาร
-			<small>
-				จัดการเอกสารต่างๆให้ตรงตามหมวดหมู่ เพื่อความง่ายต่อการเข้าถึงของผู้ใช้งาน
-			</small>
-		</h1>
-		<ol class="breadcrumb">
-			<li>
-				<a href="<?php echo base_url(); ?>">
-					<i class="fa fa-dashboard">
-					</i>หน้าแรก
-				</a>
-			</li>
-			<li>
-				<a href="<?php echo base_url('document'); ?>">
-					หมวดหมู่เอกสาร
-				</a>
-			</li>
-			<li class="active">
-				เพิ่มข้อมูลใหม่
-			</li>
-		</ol>
-	</section>
-	<!-- Main content -->
-	<section class="content">
-		<!-- Your Page Content Here -->
-		<div class="box box-primary">
-			<div class="box-header with-border">
-				<h3 class="box-title">
-					เพิ่มข้อมูล
-				</h3>
-			</div><!-- /.box-header -->
-			<!-- form start -->
-			<form role="form" action="<?php echo base_url('document/postdata'); ?>" method="post" enctype="multipart/form-data">
-			<input type="hidden" value="<?php echo $doc->id; ?>" name="id">
-			<input type="hidden" value="<?php echo $doc->filename; ?>" name="datafile">
-				<div class="box-body">
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							หมวดหมู่เอกสาร
-						</label> <?php echo $this->session->flashdata('err_categorie_id'); ?>
-						<select class="form-control" name="categorie_id">
-							<option value="">
-								เลือกข้อมูล
-							</option>
-							<?php
-							foreach($results as $result){
+<div class="row">
+    <div class="col-md-12">
+      	<div class="box box-info">
+            <div class="box-header with-border">
+              	<h3 class="box-title">Document Edit</h3>
+            </div>
+			<?php echo form_open('document/edit/'.$document['id']); ?>
+			<div class="box-body">
+				<div class="row clearfix">
+					<div class="col-md-6">
+						<label for="categorie_id" class="control-label">Category</label>
+						<div class="form-group">
+							<select name="categorie_id" class="form-control">
+								<option value="">select category</option>
+								<?php 
+								foreach($all_categories as $category)
+								{
+									$selected = ($category['id'] == $document['categorie_id']) ? ' selected="selected"' : "";
+
+									echo '<option value="'.$category['id'].'" '.$selected.'>'.$category['name'].'</option>';
+								} 
 								?>
-								<option value="<?php echo $result->id; ?>" <?php if($result->id==$doc->categorie_id){echo "selected"; } ?>>
-									<?php echo $result->name; ?>
-								</option>
-								<?php
-							} ?>
-						</select>
-					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							รหัสเอกสาร
-						</label> <?php echo $this->session->flashdata('err_document_code'); ?>
-						<input type="text" id="document_code" class="form-control" name="document_code" value="<?php echo $doc->document_code; ?>">
-					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							ชื่อเอกสาร
-						</label> <?php echo $this->session->flashdata('err_topic'); ?>
-						<input type="text" id="topic" class="form-control" name="topic" value="<?php echo $doc->topic; ?>">
-					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							วันที่ลงทะเบียนเอกสาร
-						</label> <?php echo $this->session->flashdata('err_register_date'); ?>
-						<div class="input-group">
-							<div class="input-group-addon">
-								<i class="fa fa-calendar">
-								</i>
-							</div>
-							<input type="text" class="form-control pull-right" id="register_date" name="register_date" readonly="" data-date-format="yyyy-mm-dd" value="<?php echo date('Y-m-d',strtotime($doc->register_date)); ?>">
+							</select>
 						</div>
 					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							อ้างอิงเอกสาร
-						</label>
-						<input type="text" id="reference" class="form-control" name="reference" value="<?php echo $doc->reference; ?>">
+					<div class="col-md-6">
+						<label for="document_code" class="control-label">Document Code</label>
+						<div class="form-group">
+							<input type="text" name="document_code" value="<?php echo ($this->input->post('document_code') ? $this->input->post('document_code') : $document['document_code']); ?>" class="form-control" id="document_code" />
+						</div>
 					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							สถานที่จัดเก็บเอกสาร
-						</label>
-						<input type="text" id="store" class="form-control" name="store" value="<?php echo $doc->store; ?>">
+					<div class="col-md-6">
+						<label for="register_date" class="control-label">Register Date</label>
+						<div class="form-group">
+							<input type="text" name="register_date" value="<?php echo ($this->input->post('register_date') ? $this->input->post('register_date') : $document['register_date']); ?>" class="has-datetimepicker form-control" id="register_date" />
+						</div>
 					</div>
-					<div class="form-group">
-						<label for="exampleInputEmail1">
-							อัพโหลดไฟล์เอกสารใหม่
-							<a href="<?php echo base_url('uploads/' . $doc->filename); ?>" target="_blank">(ไฟล์เดิมคลิก)</a>
-						</label> <?php echo $this->session->flashdata('err_filename'); ?>
-						<input type="file" name="userfile" id="userfile" >
+					<div class="col-md-6">
+						<label for="reference" class="control-label">Reference</label>
+						<div class="form-group">
+							<input type="text" name="reference" value="<?php echo ($this->input->post('reference') ? $this->input->post('reference') : $document['reference']); ?>" class="form-control" id="reference" />
+						</div>
 					</div>
-					<div class="form-group">
-						<label>
-							รายละเอียด
-						</label>
-						<textarea rows="3" class="form-control" id="description" name="description"><?php echo $doc->description; ?></textarea>
+					<div class="col-md-6">
+						<label for="topic" class="control-label">Topic</label>
+						<div class="form-group">
+							<input type="text" name="topic" value="<?php echo ($this->input->post('topic') ? $this->input->post('topic') : $document['topic']); ?>" class="form-control" id="topic" />
+						</div>
 					</div>
-				</div><!-- /.box-body -->
-
-				<div class="box-footer">
-					<button class="btn btn-primary" type="submit">
-						<i class="fa fa-fw fa-save">
-						</i>บันทึกข้อมูล
-					</button>
-					<a class="btn btn-danger" href="<?php echo base_url('document'); ?>" role="button">
-						<i class="fa fa-fw fa-close">
-						</i>ยกเลิก
-					</a>
+					<div class="col-md-6">
+						<label for="store" class="control-label">Store</label>
+						<div class="form-group">
+							<input type="text" name="store" value="<?php echo ($this->input->post('store') ? $this->input->post('store') : $document['store']); ?>" class="form-control" id="store" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="filename" class="control-label">Filename</label>
+						<div class="form-group">
+							<input type="text" name="filename" value="<?php echo ($this->input->post('filename') ? $this->input->post('filename') : $document['filename']); ?>" class="form-control" id="filename" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="created_date" class="control-label">Created Date</label>
+						<div class="form-group">
+							<input type="text" name="created_date" value="<?php echo ($this->input->post('created_date') ? $this->input->post('created_date') : $document['created_date']); ?>" class="has-datetimepicker form-control" id="created_date" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="modified_date" class="control-label">Modified Date</label>
+						<div class="form-group">
+							<input type="text" name="modified_date" value="<?php echo ($this->input->post('modified_date') ? $this->input->post('modified_date') : $document['modified_date']); ?>" class="has-datetimepicker form-control" id="modified_date" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="created_by" class="control-label">Created By</label>
+						<div class="form-group">
+							<input type="text" name="created_by" value="<?php echo ($this->input->post('created_by') ? $this->input->post('created_by') : $document['created_by']); ?>" class="form-control" id="created_by" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="modified_by" class="control-label">Modified By</label>
+						<div class="form-group">
+							<input type="text" name="modified_by" value="<?php echo ($this->input->post('modified_by') ? $this->input->post('modified_by') : $document['modified_by']); ?>" class="form-control" id="modified_by" />
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label for="description" class="control-label">Description</label>
+						<div class="form-group">
+							<textarea name="description" class="form-control" id="description"><?php echo ($this->input->post('description') ? $this->input->post('description') : $document['description']); ?></textarea>
+						</div>
+					</div>
 				</div>
-			</form>
+			</div>
+			<div class="box-footer">
+            	<button type="submit" class="btn btn-success">
+					<i class="fa fa-check"></i> Save
+				</button>
+	        </div>				
+			<?php echo form_close(); ?>
 		</div>
-	</section><!-- /.content -->
-</div><!-- /.content-wrapper -->
-<script type="text/javascript">
-	$('#register_date').datepicker().on(picker_event,function(e)
-		{
-		});
-</script>
+    </div>
+</div>
