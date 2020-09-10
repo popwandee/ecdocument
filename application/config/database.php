@@ -75,7 +75,7 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'mysql://b860388ba8a7bc:b4f34e57@us-cdbr-east-02.cleardb.com/heroku_9197d4ccc3e751b?reconnect=true',
+	'hostname' => 'b860388ba8a7bc:b4f34e57@us-cdbr-east-02.cleardb.com/heroku_9197d4ccc3e751b?reconnect=true',
 	'username' => 'b860388ba8a7bc',
 	'password' => 'b4f34e57',
 	'database' => 'personeldeploy',
